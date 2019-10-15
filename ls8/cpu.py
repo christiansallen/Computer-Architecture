@@ -13,6 +13,7 @@ class CPU:
         self.ir = 0
         self.mar = 0
         self.mdr = 0
+        self.fl = 0
 
     def load(self):
         """Load a program into memory."""
@@ -73,4 +74,18 @@ class CPU:
 
     def run(self):
         """Run the CPU."""
-        pass
+        self.pc = 0
+        running = True
+        while running:
+            self.ir = self.ram[self.pc]
+            operand_a = self.ram[self.pc+1]
+            operand_b = self.ram[self.pc+2]
+            if self.ir == 0b00000001:
+                break
+            elif self.ir == 0b10000010:
+                self.registers[int(operand_a)] = operand_b
+                self.pc += 2
+            elif self.ir == 0b01000111:
+                print(self.registers[operand_a])
+                self.pc += 1
+            self.pc += 1
