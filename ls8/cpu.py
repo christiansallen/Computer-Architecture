@@ -1,6 +1,7 @@
 """CPU functionality."""
 
 import sys
+import re
 
 class CPU:
     """Main CPU class."""
@@ -15,22 +16,51 @@ class CPU:
         self.mdr = 0
         self.fl = 0
 
-    def load(self):
+    def load(self, filename):
         """Load a program into memory."""
 
         address = 0
 
         # For now, we've just hardcoded a program:
 
-        program = [
-            # From print8.ls8
-            0b10000010, # LDI R0,8
-            0b00000000,
-            0b00001000,
-            0b01000111, # PRN R0
-            0b00000000,
-            0b00000001, # HLT
-        ]
+        # program = [
+        #     # From print8.ls8
+        #     0b10000010, # LDI R0,8
+        #     0b00000000,
+        #     0b00001000,
+        #     0b01000111, # PRN R0
+        #     0b00000000,
+        #     0b00000001, # HLT
+        # ]
+
+        program = []
+
+        try:
+            with open(filename) as f:
+                for line in f:
+                    #remove anything after #
+                    comment_split = line.split("#")
+
+                    commands = re.split('\W+', comment_split[0])
+
+                    if commands[0] == "HLT":
+                        program.append(0b00000001)
+                    elif commands[0] == "LDI":
+                        program.append(0b10000010)
+                        program.append(int(commands[1].strip('R')))
+                        program.append(int(commands[2]))
+                    elif commands[0] == "PRN":
+                        program.append(0b01000111)
+                        program.append(int(commands[1].strip('R')))
+                    elif commands[0] == "MUL":
+                        program.append(0b10100010)
+                        program.append(int(commands[1].strip('R')))
+                        program.append(int(commands[2].strip('R')))
+
+                    
+        except FileNotFoundError:
+            print(f"{filename} not found")
+            sys.exit(2)
 
         for instruction in program:
             self.ram[address] = instruction
@@ -47,8 +77,10 @@ class CPU:
         """ALU operations."""
 
         if op == "ADD":
-            self.reg[reg_a] += self.reg[reg_b]
+            self.registers[reg_a] += self.registers[reg_b]
         #elif op == "SUB": etc
+        elif op == "MUL":
+            self.registers[reg_a] *= self.registers[reg_b]
         else:
             raise Exception("Unsupported ALU operation")
 
@@ -88,4 +120,7 @@ class CPU:
             elif self.ir == 0b01000111:
                 print(self.registers[operand_a])
                 self.pc += 1
+            elif self.ir == 0b10100010 :
+                self.alu("MUL", operand_a, operand_b)
+                self.pc += 2
             self.pc += 1
