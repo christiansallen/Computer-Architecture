@@ -9,7 +9,9 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         self.ram = [0]*256
-        self.registers = [0]*8
+        self.registers = [0]*8 # SP = 7
+        self.registers[7] = 0xFF # SP initialized to end of ram
+        # I think these are wrong, I'll clean them up tomorrow :)
         self.pc = 0
         self.ir = 0
         self.mar = 0
@@ -56,6 +58,12 @@ class CPU:
                         program.append(0b10100010)
                         program.append(int(commands[1].strip('R')))
                         program.append(int(commands[2].strip('R')))
+                    elif commands[0] == "PUSH":
+                        program.append(0b01000101)
+                        program.append(int(commands[1].strip('R')))
+                    elif commands[0] == "POP":
+                        program.append(0b01000110)
+                        program.append(int(commands[1].strip('R')))
 
                     
         except FileNotFoundError:
@@ -120,7 +128,15 @@ class CPU:
             elif self.ir == 0b01000111:
                 print(self.registers[operand_a])
                 self.pc += 1
-            elif self.ir == 0b10100010 :
+            elif self.ir == 0b10100010:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 2
+            elif self.ir == 0b01000101:
+                self.registers[7] -= 1
+                self.ram[self.registers[7]] = self.registers[operand_a]
+                self.pc += 1
+            elif self.ir == 0b01000110:
+                self.registers[operand_a] = self.ram[self.registers[7]]
+                self.registers[7] -= 1
+                self.pc += 1
             self.pc += 1
