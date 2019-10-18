@@ -17,6 +17,8 @@ class CPU:
         self.mar = 0
         self.mdr = 0
         self.fl = 0
+        
+        self.subroutines = {}
 
     def load(self, filename):
         """Load a program into memory."""
@@ -36,21 +38,51 @@ class CPU:
         # ]
 
         program = []
-
         try:
             with open(filename) as f:
+                # Find functions
+                # in_func = False
+                # for line in f:
+                #     l = line.replace("\n", "")
+                #     l = l.split(";")
+                #     l = l[0]
+                #     if l.endswith(":"):
+                #         print("Hey")
+                #         print(l)
+                #         in_func = True
+                #     # Gets commands inside a command
+                #     # Need to find out where to put them
+                #     # Top of RAM? Put everything else below it?
+                #     elif in_func == True:
+                #         print("OY")
+                #         print(l)
+                #         if l.startswith("    "):
+                #             print("yo")
+                #         else:
+                #             in_func = False
                 for line in f:
                     #remove anything after #
-                    comment_split = line.split("#")
+                    # comment_split = line.split("#")
+                    # These need to be swapped to # since it's python now, not C
+                    comment_split = line.lstrip(' ')
+                    comment_split = comment_split.replace("\n", "")
+                    comment_split = comment_split.split(';')
 
                     commands = re.split('\W+', comment_split[0])
 
-                    if commands[0] == "HLT":
+                    # print(comment_split[0])
+                    #If I hit a command, I store its location. Not sure how I'd do this
+                    if comment_split[0].endswith(":"):
+                        self.subroutines[comment_split[0].strip(':')] = len(program)
+                    elif commands[0] == "HLT":
                         program.append(0b00000001)
                     elif commands[0] == "LDI":
                         program.append(0b10000010)
                         program.append(int(commands[1].strip('R')))
-                        program.append(int(commands[2]))
+                        if commands[2].isdigit():
+                            program.append(int(commands[2]))
+                        else:
+                            program.append(commands[2])
                     elif commands[0] == "PRN":
                         program.append(0b01000111)
                         program.append(int(commands[1].strip('R')))
@@ -64,6 +96,15 @@ class CPU:
                     elif commands[0] == "POP":
                         program.append(0b01000110)
                         program.append(int(commands[1].strip('R')))
+                    elif commands[0] == "ADD":
+                        program.append(0b10100000)
+                        program.append(int(commands[1].strip('R')))
+                        program.append(int(commands[2].strip('R')))
+                    elif commands[0] == "CALL":
+                        program.append(0b01010000)
+                        program.append(int(commands[1].strip('R')))
+                    elif commands[0] == "RET":
+                        program.append(0b00010001)
 
                     
         except FileNotFoundError:
@@ -83,7 +124,6 @@ class CPU:
 
     def alu(self, op, reg_a, reg_b):
         """ALU operations."""
-
         if op == "ADD":
             self.registers[reg_a] += self.registers[reg_b]
         #elif op == "SUB": etc
@@ -123,20 +163,32 @@ class CPU:
             if self.ir == 0b00000001:
                 break
             elif self.ir == 0b10000010:
-                self.registers[int(operand_a)] = operand_b
-                self.pc += 2
+                if operand_b in self.subroutines:
+                    self.registers[int(operand_a)] = self.subroutines[operand_b]
+                else:
+                    self.registers[int(operand_a)] = operand_b
+                self.pc += 3
             elif self.ir == 0b01000111:
                 print(self.registers[operand_a])
-                self.pc += 1
+                self.pc += 2
             elif self.ir == 0b10100010:
                 self.alu("MUL", operand_a, operand_b)
-                self.pc += 2
+                self.pc += 3
             elif self.ir == 0b01000101:
                 self.registers[7] -= 1
                 self.ram[self.registers[7]] = self.registers[operand_a]
-                self.pc += 1
+                self.pc += 2
             elif self.ir == 0b01000110:
                 self.registers[operand_a] = self.ram[self.registers[7]]
+                self.registers[7] += 1
+                self.pc += 2
+            elif self.ir == 0b10100000:
+                self.alu("ADD", operand_a, operand_b)
+                self.pc += 3
+            elif self.ir == 0b01010000:
                 self.registers[7] -= 1
-                self.pc += 1
-            self.pc += 1
+                self.ram[self.registers[7]] = self.pc+2
+                self.pc = self.registers[operand_a]
+            elif self.ir == 0b00010001:
+                self.pc = self.ram[self.registers[7]]
+                self.registers[7] += 1
