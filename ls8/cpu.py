@@ -9,9 +9,9 @@ class CPU:
     def __init__(self):
         """Construct a new CPU."""
         self.ram = [0] * 256
-        self.registers = [0]*8
+        self.registers = [0] * 8
         self.ir = 0
-        self.pc = 0
+        self.pc = 0  # Program Counter
 
     def ram_read(self, index):
         return self.ram[index]
@@ -45,7 +45,7 @@ class CPU:
                     continue
                 # print(f'Line in ls8.py: {line}')
                 val = int(line, 2)
-                print(f'val:{val}')
+                # print(f'val:{val}')
                 self.ram[address] = val
                 address += 1
 
@@ -94,6 +94,9 @@ class CPU:
         LDI = 0b10000010
         PRN = 0b01000111
         MUL = 0b10100010
+        PUSH = 0b01000101
+        POP = 0b01000110
+        SP = 7
 
         self.pc = 0
         running = True
@@ -118,5 +121,19 @@ class CPU:
             elif self.ir == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
+            elif self.ir == PUSH:
+                self.registers[SP] -= 1
+                reg_val = self.registers[operand_a]
+                self.ram[self.registers[SP]] = reg_val
+                self.pc += 2
+
+            elif self.ir == POP:
+                val = self.ram[self.registers[SP]]
+                reg_num = self.ram[self.pc + 1]
+                # copy val from self.ram at SP into register
+                self.registers[reg_num] = val
+                self.registers[SP] += 1  # increment SP​
+                self.pc += 2
+
             else:
                 self.pc += 1
