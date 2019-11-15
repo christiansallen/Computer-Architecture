@@ -13,6 +13,9 @@ class CPU:
         self.ir = 0
         self.pc = 0  # Pr
         self.SP = 7
+        self.E = 0
+        self.L = 0
+        self.G = 0
         self.registers[self.SP] = len(self.ram)
 
     def ram_read(self, index):
@@ -66,6 +69,19 @@ class CPU:
             self.registers[reg_a] += self.registers[reg_b]
         elif op == "MUL":
             self.registers[reg_a] *= self.registers[reg_b]
+        elif op == "CMP":
+            if self.registers[reg_a] > self.registers[reg_b]:
+                self.L = 0
+                self.E = 0
+                self.G = 1
+            elif self.registers[reg_a] < self.registers[reg_b]:
+                self.L = 1
+                self.E = 0
+                self.G = 0
+            elif self.registers[reg_a] == self.registers[reg_b]:
+                self.L = 0
+                self.E = 1
+                self.G = 0
 
         else:
             raise Exception("Unsupported ALU operation")
@@ -101,6 +117,10 @@ class CPU:
         CALL = 0b01010000
         RET = 0b00010001
         ADD = 0b10100000
+        CMP = 0b10100111
+        JEQ = 0b01010101
+        JNE = 0b01010110
+        JMP = 0b01010100
 
         self.pc = 0
         running = True
@@ -125,9 +145,15 @@ class CPU:
             elif self.ir == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
+            # ADD add
             elif self.ir == ADD:
                 self.alu('ADD', operand_a, operand_b)
                 self.pc += 3
+            # CMP compare
+            elif self.ir == CMP:
+                self.alu('CMP', operand_a, operand_b)
+                self.pc += 3
+
             elif self.ir == PUSH:
                 self.registers[self.SP] -= 1
                 reg_val = self.registers[operand_a]
@@ -162,5 +188,27 @@ class CPU:
                 self.pc = self.ram[self.registers[self.SP]]
                 self.registers[self.SP] += 1
 
+            # JMP jump Set the `PC` to the address stored in the given register (operand_a).
+            elif self.ir == JMP:
+                reg_num = operand_a
+                self.pc = self.registers[reg_num]
+
+            # JEQ jump equal
+            elif self.ir == JEQ:
+                if self.E == 1:
+                    reg_num = operand_a
+                    self.pc = self.registers[reg_num]
+                else:
+                    self.pc += 2
+
+            # JNE jump not equal
+            elif self.ir == JNE:
+                if self.E == 0:
+                    reg_num = operand_a
+                    self.pc = self.registers[reg_num]
+                else:
+                    self.pc += 2
+
             else:
-                print('UNKNOWN self.ir')
+                print(f'UNKNOWN self.ir at {self.pc}')
+                self.pc += 1
