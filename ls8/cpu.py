@@ -11,7 +11,9 @@ class CPU:
         self.ram = [0] * 256
         self.registers = [0] * 8
         self.ir = 0
-        self.pc = 0  # Program Counter
+        self.pc = 0  # Pr
+        self.SP = 7
+        self.registers[self.SP] = len(self.ram)
 
     def ram_read(self, index):
         return self.ram[index]
@@ -96,7 +98,9 @@ class CPU:
         MUL = 0b10100010
         PUSH = 0b01000101
         POP = 0b01000110
-        SP = 7
+        CALL = 0b01010000
+        RET = 0b00010001
+        ADD = 0b10100000
 
         self.pc = 0
         running = True
@@ -121,19 +125,42 @@ class CPU:
             elif self.ir == MUL:
                 self.alu("MUL", operand_a, operand_b)
                 self.pc += 3
+            elif self.ir == ADD:
+                self.alu('ADD', operand_a, operand_b)
+                self.pc += 3
             elif self.ir == PUSH:
-                self.registers[SP] -= 1
+                self.registers[self.SP] -= 1
                 reg_val = self.registers[operand_a]
-                self.ram[self.registers[SP]] = reg_val
+                self.ram[self.registers[self.SP]] = reg_val
                 self.pc += 2
 
             elif self.ir == POP:
-                val = self.ram[self.registers[SP]]
+                val = self.ram[self.registers[self.SP]]
                 reg_num = self.ram[self.pc + 1]
-                # copy val from self.ram at SP into register
+                # copy val from self.ram at self.SP into register
                 self.registers[reg_num] = val
-                self.registers[SP] += 1  # increment SP​
+                self.registers[self.SP] += 1  # increment self.SP​
                 self.pc += 2
 
+            elif self.ir == CALL:
+                return_address = self.pc + 2
+                # print(f'return_address: {return_address}')
+                self.registers[self.SP] -= 1
+
+                self.ram[self.registers[self.SP]] = return_address
+                # print(
+                #     f'self.ram[self.registers[self.SP]]: {self.ram[self.registers[self.SP]]}')
+                # print(self.ram)
+                # print(f'operand_a: {operand_a}')
+                # print(f'self.registers[self.SP]: {self.registers[self.SP]}')
+                reg_num = operand_a
+                self.pc = self.registers[reg_num]
+                print(self.registers[self.SP])
+                print(self.ram)
+
+            elif self.ir == RET:
+                self.pc = self.ram[self.registers[self.SP]]
+                self.registers[self.SP] += 1
+
             else:
-                self.pc += 1
+                print('UNKNOWN self.ir')
