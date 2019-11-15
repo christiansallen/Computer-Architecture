@@ -188,6 +188,11 @@ class CPU:
                 self.pc = self.ram[self.registers[self.SP]]
                 self.registers[self.SP] += 1
 
+            # JMP jump Set the `PC` to the address stored in the given register (operand_a).
+            elif self.ir == JMP:
+                reg_num = operand_a
+                self.pc = self.registers[reg_num]
+
             else:
                 print(f'UNKNOWN self.ir at {self.pc}')
                 self.pc += 1
