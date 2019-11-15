@@ -193,6 +193,22 @@ class CPU:
                 reg_num = operand_a
                 self.pc = self.registers[reg_num]
 
+            # JEQ jump equal
+            elif self.ir == JEQ:
+                if self.E == 1:
+                    reg_num = operand_a
+                    self.pc = self.registers[reg_num]
+                else:
+                    self.pc += 2
+
+            # JNE jump not equal
+            elif self.ir == JNE:
+                if self.E == 0:
+                    reg_num = operand_a
+                    self.pc = self.registers[reg_num]
+                else:
+                    self.pc += 2
+
             else:
                 print(f'UNKNOWN self.ir at {self.pc}')
                 self.pc += 1
